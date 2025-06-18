@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from './components/Header';
 import HomePage from './components/HomePage';
 import ProductPage from './components/ProductPage';
@@ -32,6 +32,19 @@ function App() {
   const handleContinueShopping = () => {
     setCurrentPage('home');
   };
+
+  // Listen for success page navigation
+  useEffect(() => {
+    const handleNavigateToSuccess = () => {
+      setCurrentPage('success');
+    };
+
+    window.addEventListener('navigate-to-success', handleNavigateToSuccess);
+    
+    return () => {
+      window.removeEventListener('navigate-to-success', handleNavigateToSuccess);
+    };
+  }, []);
 
   const renderCurrentPage = () => {
     if (currentPage === 'success') {
