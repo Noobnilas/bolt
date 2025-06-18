@@ -4,6 +4,7 @@ import HomePage from './components/HomePage';
 import ProductPage from './components/ProductPage';
 import AboutPage from './components/AboutPage';
 import ContactPage from './components/ContactPage';
+import SuccessPage from './components/SuccessPage';
 import Cart from './components/Cart';
 import { CartProvider } from './context/CartContext';
 import { Product } from './types';
@@ -28,7 +29,15 @@ function App() {
     setCurrentPage('home');
   };
 
+  const handleContinueShopping = () => {
+    setCurrentPage('home');
+  };
+
   const renderCurrentPage = () => {
+    if (currentPage === 'success') {
+      return <SuccessPage onContinueShopping={handleContinueShopping} />;
+    }
+
     if (currentPage === 'product' && selectedProduct) {
       return <ProductPage product={selectedProduct} onBack={handleBackFromProduct} />;
     }
