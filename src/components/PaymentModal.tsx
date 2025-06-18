@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Elements } from '@stripe/react-stripe-js';
 import { X } from 'lucide-react';
-import stripePromise from '../config/stripe';
 import CheckoutForm from './CheckoutForm';
 
 interface PaymentModalProps {
@@ -19,82 +17,18 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   total, 
   items 
 }) => {
-  const [clientSecret, setClientSecret] = useState('');
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (isOpen) {
-      // Create PaymentIntent as soon as the component loads
-      createPaymentIntent();
-    }
-  }, [isOpen, total]);
-
-  const createPaymentIntent = async () => {
-    setIsLoading(true);
-    
-    try {
-      // In a real application, this would be your backend endpoint
-      // For demo purposes, we'll simulate the PaymentIntent creation
-      const response = await fetch('/api/create-payment-intent', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          amount: Math.round(total * 100), // Convert to cents
-          currency: 'eur',
-          items: items
-        }),
-      });
-
-      if (!response.ok) {
-        // Fallback for demo - create a mock client secret
-        const mockClientSecret = `pi_demo_${Date.now()}_secret_demo`;
-        setClientSecret(mockClientSecret);
+      // Simulate loading time for demo purposes
+      const timer = setTimeout(() => {
         setIsLoading(false);
-        return;
-      }
-
-      const data = await response.json();
-      setClientSecret(data.clientSecret);
-    } catch (error) {
-      console.error('Error creating payment intent:', error);
-      // Fallback for demo
-      const mockClientSecret = `pi_demo_${Date.now()}_secret_demo`;
-      setClientSecret(mockClientSecret);
+      }, 1000);
+      
+      return () => clearTimeout(timer);
     }
-    
-    setIsLoading(false);
-  };
-
-  const appearance = {
-    theme: 'stripe' as const,
-    variables: {
-      colorPrimary: '#111827',
-      colorBackground: '#ffffff',
-      colorText: '#111827',
-      colorDanger: '#df1b41',
-      fontFamily: 'Inter, system-ui, sans-serif',
-      spacingUnit: '4px',
-      borderRadius: '8px',
-    },
-    rules: {
-      '.Tab': {
-        border: '1px solid #e5e7eb',
-        borderRadius: '8px',
-      },
-      '.Tab:hover': {
-        backgroundColor: '#f9fafb',
-      },
-      '.Tab--selected': {
-        backgroundColor: '#111827',
-        color: '#ffffff',
-      },
-    },
-  };
-
-  const options = {
-    clientSecret,
-    appearance,
-  };
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -118,26 +52,12 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                 <p className="text-gray-600">Setting up secure payment...</p>
               </div>
             </div>
-          ) : clientSecret ? (
-            <Elements options={options} stripe={stripePromise}>
-              <CheckoutForm 
-                onSuccess={onSuccess} 
-                onCancel={onClose}
-                total={total}
-              />
-            </Elements>
           ) : (
-            <div className="bg-white rounded-2xl shadow-2xl p-8">
-              <div className="text-center">
-                <p className="text-red-600 mb-4">Unable to initialize payment</p>
-                <button
-                  onClick={onClose}
-                  className="bg-gray-900 text-white px-6 py-2 rounded-lg hover:bg-gray-800 transition-colors duration-200"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
+            <CheckoutForm 
+              onSuccess={onSuccess} 
+              onCancel={onClose}
+              total={total}
+            />
           )}
         </div>
       </div>

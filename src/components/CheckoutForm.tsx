@@ -1,11 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import {
-  PaymentElement,
-  LinkAuthenticationElement,
-  useStripe,
-  useElements
-} from '@stripe/react-stripe-js';
-import { Loader2, CreditCard, Smartphone, Shield } from 'lucide-react';
+import React, { useState } from 'react';
+import { Loader2, CreditCard, Smartphone, Shield, Check } from 'lucide-react';
 
 interface CheckoutFormProps {
   onSuccess: () => void;
@@ -14,76 +8,57 @@ interface CheckoutFormProps {
 }
 
 const CheckoutForm: React.FC<CheckoutFormProps> = ({ onSuccess, onCancel, total }) => {
-  const stripe = useStripe();
-  const elements = useElements();
-
   const [email, setEmail] = useState('');
+  const [cardNumber, setCardNumber] = useState('');
+  const [expiryDate, setExpiryDate] = useState('');
+  const [cvc, setCvc] = useState('');
+  const [cardholderName, setCardholderName] = useState('');
   const [message, setMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-
-  useEffect(() => {
-    if (!stripe) {
-      return;
-    }
-
-    const clientSecret = new URLSearchParams(window.location.search).get(
-      'payment_intent_client_secret'
-    );
-
-    if (!clientSecret) {
-      return;
-    }
-
-    stripe.retrievePaymentIntent(clientSecret).then(({ paymentIntent }) => {
-      switch (paymentIntent?.status) {
-        case 'succeeded':
-          setMessage('Payment succeeded!');
-          break;
-        case 'processing':
-          setMessage('Your payment is processing.');
-          break;
-        case 'requires_payment_method':
-          setMessage('Your payment was not successful, please try again.');
-          break;
-        default:
-          setMessage('Something went wrong.');
-          break;
-      }
-    });
-  }, [stripe]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!stripe || !elements) {
+    if (!email || !cardNumber || !expiryDate || !cvc || !cardholderName) {
+      setMessage('Please fill in all required fields.');
       return;
     }
 
     setIsLoading(true);
+    setMessage(null);
 
-    const { error } = await stripe.confirmPayment({
-      elements,
-      confirmParams: {
-        return_url: `${window.location.origin}/success`,
-      },
-    });
-
-    if (error) {
-      if (error.type === 'card_error' || error.type === 'validation_error') {
-        setMessage(error.message || 'An error occurred');
-      } else {
-        setMessage('An unexpected error occurred.');
-      }
-    } else {
-      onSuccess();
-    }
-
-    setIsLoading(false);
+    // Simulate payment processing
+    setTimeout(() => {
+      setMessage('Payment succeeded!');
+      setTimeout(() => {
+        onSuccess();
+      }, 1500);
+    }, 2000);
   };
 
-  const paymentElementOptions = {
-    layout: 'tabs' as const,
-    paymentMethodOrder: ['card', 'apple_pay', 'google_pay'],
+  const formatCardNumber = (value: string) => {
+    const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
+    const matches = v.match(/\d{4,16}/g);
+    const match = matches && matches[0] || '';
+    const parts = [];
+
+    for (let i = 0, len = match.length; i < len; i += 4) {
+      parts.push(match.substring(i, i + 4));
+    }
+
+    if (parts.length) {
+      return parts.join(' ');
+    } else {
+      return v;
+    }
+  };
+
+  const formatExpiryDate = (value: string) => {
+    const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
+    if (v.length >= 2) {
+      return v.substring(0, 2) + '/' + v.substring(2, 4);
+    }
+    return v;
   };
 
   return (
@@ -103,27 +78,80 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ onSuccess, onCancel, total 
         </div>
       </div>
 
-      <form id="payment-form" onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-6">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Email Address
+            Email Address *
           </label>
-          <LinkAuthenticationElement
-            id="link-authentication-element"
-            onChange={(e) => setEmail(e.value?.email || '')}
-            options={{
-              defaultValues: {
-                email: email
-              }
-            }}
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all duration-200"
+            placeholder="your@email.com"
+            required
           />
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Payment Method
+            Cardholder Name *
           </label>
-          <PaymentElement id="payment-element" options={paymentElementOptions} />
+          <input
+            type="text"
+            value={cardholderName}
+            onChange={(e) => setCardholderName(e.target.value)}
+            className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all duration-200"
+            placeholder="John Doe"
+            required
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Card Number *
+          </label>
+          <input
+            type="text"
+            value={cardNumber}
+            onChange={(e) => setCardNumber(formatCardNumber(e.target.value))}
+            className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all duration-200"
+            placeholder="1234 5678 9012 3456"
+            maxLength={19}
+            required
+          />
+          <p className="text-xs text-gray-500 mt-1">Use 4242 4242 4242 4242 for demo</p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Expiry Date *
+            </label>
+            <input
+              type="text"
+              value={expiryDate}
+              onChange={(e) => setExpiryDate(formatExpiryDate(e.target.value))}
+              className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all duration-200"
+              placeholder="MM/YY"
+              maxLength={5}
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              CVC *
+            </label>
+            <input
+              type="text"
+              value={cvc}
+              onChange={(e) => setCvc(e.target.value.replace(/[^0-9]/g, '').substring(0, 4))}
+              className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all duration-200"
+              placeholder="123"
+              maxLength={4}
+              required
+            />
+          </div>
         </div>
 
         {/* Security Features */}
@@ -153,10 +181,10 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ onSuccess, onCancel, total 
 
         <div className="space-y-3">
           <button
-            disabled={isLoading || !stripe || !elements}
-            id="submit"
+            disabled={isLoading}
+            type="submit"
             className={`w-full bg-gray-900 text-white py-4 px-6 rounded-lg font-medium text-lg transition-all duration-200 flex items-center justify-center space-x-2 ${
-              isLoading || !stripe || !elements
+              isLoading
                 ? 'opacity-50 cursor-not-allowed'
                 : 'hover:bg-gray-800 hover:scale-[1.02] transform'
             }`}
@@ -174,25 +202,27 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ onSuccess, onCancel, total 
           <button
             type="button"
             onClick={onCancel}
-            className="w-full bg-gray-100 text-gray-700 py-3 px-6 rounded-lg font-medium hover:bg-gray-200 transition-colors duration-200"
+            disabled={isLoading}
+            className="w-full bg-gray-100 text-gray-700 py-3 px-6 rounded-lg font-medium hover:bg-gray-200 transition-colors duration-200 disabled:opacity-50"
           >
             Cancel
           </button>
         </div>
 
         {message && (
-          <div className={`p-4 rounded-lg text-center ${
+          <div className={`p-4 rounded-lg text-center flex items-center justify-center space-x-2 ${
             message.includes('succeeded') 
               ? 'bg-green-50 text-green-800 border border-green-200' 
               : 'bg-red-50 text-red-800 border border-red-200'
           }`}>
-            {message}
+            {message.includes('succeeded') && <Check className="h-5 w-5" />}
+            <span>{message}</span>
           </div>
         )}
       </form>
 
       <div className="mt-6 text-center text-xs text-gray-500">
-        <p>Powered by Stripe • SSL Encrypted</p>
+        <p>Demo Mode • SSL Encrypted</p>
       </div>
     </div>
   );
